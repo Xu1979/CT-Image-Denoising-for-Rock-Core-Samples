@@ -1,0 +1,32 @@
+# Core deep learning
+# PyTorch: install the CUDA-compatible version from https://pytorch.org/get-started/locally/
+torch>=2.5.1
+torchvision>=0.20.1
+
+# Transformer backbone (SwinUNet)
+timm>=1.0.25
+
+# Numerical computing
+numpy>=2.2.6
+scipy>=1.15.3
+
+# Image processing
+scikit-image>=0.25.2
+opencv-python>=4.12.0
+Pillow>=12.0.0
+
+# Machine learning (traditional methods)
+scikit-learn>=1.7.2
+
+# Data I/O
+netCDF4>=1.7.4
+xarray>=2025.4.0
+
+# Visualization
+matplotlib>=3.10.8
+
+# Data analysis
+pandas>=2.3.3
+
+# Utilities
+tqdm>=4.67.3
