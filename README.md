@@ -50,7 +50,7 @@ pretrained/swin_base_patch4_window7_224.pth
 ├── SwinUNet_complete.py             # SwinUNet training
 ├── traditional_denoising_pipeline.py# Traditional denoising pipeline
 ├── history_visual_prediction.py     # Training curve plots + patch-wise inference
-├── Generate_multiversion_noise.py   # Generate multi-version noisy images
+├── Generate_multiversion_noise.py   # Generate multi-version noisy images for inference
 ├── requirements.txt
 └── LICENSE
 ```
