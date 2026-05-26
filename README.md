@@ -131,10 +131,11 @@ Place them in the project root directory:
 
 Download `test_data/` from [Releases](../../releases) and place it in the project root:
 
-    test_data/
-        noisy/        <- noisy test images
-        clean/
-            clean.png <- clean reference image
+    test_data/sap_only/v00.png ... v29.png
+    test_data/ring_only/v00.png ... v29.png
+    test_data/sap_ring_bh/v00.png ... v29.png
+    ...
+
 
 **3. Run**
 
