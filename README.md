@@ -20,7 +20,7 @@ Deep learning and traditional methods for denoising CT scan images of geological
 | Ring artifact correction (RHC) | Traditional | `traditional_denoising_pipeline.py` |
 | K-means-assisted beam hardening correction (BHC) | Traditional | `traditional_denoising_pipeline.py` |
 
-> **Hybrid Swin Transformer** is a custom architecture combining a pretrained Swin Transformer encoder (`swin_base_patch4_window7_224`) with a lightweight CNN decoder. It is distinct from the original SwinUNet (Cao et al., 2021), which uses a pure Transformer for both encoder and decoder. The SwinUNet
+> **Hybrid Swin Transformer** is a custom architecture combining a pretrained Swin Transformer encoder (`swin_base_patch4_window7_224`) with a lightweight CNN decoder. It is distinct from the original SwinUNet (Cao et al., 2021), which uses a pure Transformer for both encoder and decoder. The SwinUNet in this repository is a name.
 
 ## Requirements
 
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 > https://pytorch.org/get-started/locally/  
 > then install the remaining packages via `pip install -r requirements.txt`.
 
-**Pretrained weights for Hybrid Swin Transformer** (`swin_base_patch4_window7_224.pth`):  
+**Pretrained weights for SwinUNet** (`swin_base_patch4_window7_224.pth`):  
 Download from the [Swin Transformer repository](https://github.com/microsoft/Swin-Transformer) and place at:
 ```
 pretrained/swin_base_patch4_window7_224.pth
@@ -52,7 +52,7 @@ pretrained/swin_base_patch4_window7_224.pth
 ├── SwinUNet_complete.py             # SwinUNet training
 ├── traditional_denoising_pipeline.py# Traditional denoising pipeline
 ├── history_visual_prediction.py     # Training curve plots + patch-wise inference
-├── Generate_multiversion_noise.py   # Generate multi-version noisy images for inference
+├── Generate_multiversion_noise.py   # Generate multi-version noisy images
 ├── requirements.txt
 └── LICENSE
 ```
@@ -115,6 +115,34 @@ Edit `SANDSTONE_ROOT` and `CARBONATE_ROOT` at the top of the file to point to yo
 | `sap_bh` | SAP + Beam hardening |
 | `ring_bh` | Ring + Beam hardening |
 | `sap_ring_bh` | All three combined |
+
+## Quick Test
+
+Download the sample test images and pretrained models:
+
+| Resource | Link |
+|---|---|
+| Test images (`test_data/`) | [to be added] |
+| Pretrained models (`.pth`) | [to be added] |
+
+Place the downloaded files in the project root, then run:
+
+```bash
+python quick_test.py
+```
+
+By default this runs U-Net. To switch models, open `quick_test.py` and uncomment the desired model block (Hybrid Swin Transformer or FCN-ResNet50).
+
+Expected output:
+```
+Model : unet  (unet_best_model.pth)
+Input : test_data/noisy
+Output: test_data/denoised/unet
+
+Average PSNR: XX.XX ± X.XX dB
+Average SSIM: 0.XXXX ± 0.XXXX
+✓ all the denoised images have been saved: test_data/denoised/unet
+```
 
 ## Metrics
 
