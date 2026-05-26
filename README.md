@@ -120,7 +120,7 @@ Edit `SANDSTONE_ROOT` and `CARBONATE_ROOT` at the top of the file to point to yo
 
 **1. Download pretrained models**
 
-Go to the [Releases](the best trained model paths) page of this repository and download the `.pth` files.  
+Go to the [Releases](../../releases) page of this repository and download the `.pth` files.  
 Place them in the project root directory:
 unet_best_model.pth
 fcn_best_model.pth
@@ -143,11 +143,9 @@ By default this tests U-Net. To switch models, open quick_test.py and uncomment 
 
 Expected output:
 
-
 Average PSNR: XX.XX ± X.XX dB
 Average SSIM: 0.XXXX ± 0.XXXX
 ✓ all the denoised images have been saved: test_data/denoised/unet
-
 
 ## Metrics
 
