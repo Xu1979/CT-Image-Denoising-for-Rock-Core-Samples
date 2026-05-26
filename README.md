@@ -118,31 +118,36 @@ Edit `SANDSTONE_ROOT` and `CARBONATE_ROOT` at the top of the file to point to yo
 
 ## Quick Test
 
-Download the sample test images and pretrained models:
+**1. Download pretrained models**
 
-| Resource |
-|---|
-| Test images (`test_data/`) |
-| Pretrained models (`.pth`) |
+Go to the [Releases](the best trained model paths) page of this repository and download the `.pth` files.  
+Place them in the project root directory:
+unet_best_model.pth
+fcn_best_model.pth
+swinunet_best_denoising_model.pth
 
-Place the downloaded files in the project root, then run:
+**2. Download test images**
+
+Download the `test_data/` folder from [Releases](../../releases) and place it in the project root:
+
+test_data/
+noisy/        ← noisy test images
+clean/
+clean.png ← clean reference image
+
+**3. Run**
 
 ```bash
 python quick_test.py
-```
-
-By default this runs U-Net. To switch models, open `quick_test.py` and uncomment the desired model block (Hybrid Swin Transformer or FCN-ResNet50).
+By default this tests U-Net. To switch models, open quick_test.py and uncomment the desired model block (Hybrid Swin Transformer or FCN-ResNet50).
 
 Expected output:
-```
-Model : unet  (unet_best_model.pth)
-Input : test_data/noisy
-Output: test_data/denoised/unet
+
 
 Average PSNR: XX.XX ± X.XX dB
 Average SSIM: 0.XXXX ± 0.XXXX
 ✓ all the denoised images have been saved: test_data/denoised/unet
-```
+
 
 ## Metrics
 
