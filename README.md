@@ -37,7 +37,7 @@ pip install -r requirements.txt
 > https://pytorch.org/get-started/locally/  
 > then install the remaining packages via `pip install -r requirements.txt`.
 
-**Pretrained weights for SwinUNet** (`swin_base_patch4_window7_224.pth`):  
+**Pretrained weights for Hybrid Swin Transformer** (`swin_base_patch4_window7_224.pth`):  
 Download from the [Swin Transformer repository](https://github.com/microsoft/Swin-Transformer) and place at:
 ```
 pretrained/swin_base_patch4_window7_224.pth
@@ -49,7 +49,7 @@ pretrained/swin_base_patch4_window7_224.pth
 ├── dataset_pre.py                   # Dataset generation and DataLoader
 ├── unet_complete.py                 # U-Net training
 ├── FCN_complete.py                  # FCN-ResNet training
-├── SwinUNet_complete.py             # SwinUNet training
+├── SwinUNet_complete.py             # Hybrid Swin Transformer training
 ├── traditional_denoising_pipeline.py# Traditional denoising pipeline
 ├── history_visual_prediction.py     # Training curve plots + patch-wise inference
 ├── Generate_multiversion_noise.py   # Generate multi-version noisy images
@@ -78,7 +78,7 @@ python unet_complete.py
 # FCN-ResNet50
 python FCN_complete.py
 
-# SwinUNet (requires pretrained Swin weights)
+# Hybrid Swin Transformer (requires pretrained Swin weights)
 python SwinUNet_complete.py
 
 ```
@@ -120,10 +120,10 @@ Edit `SANDSTONE_ROOT` and `CARBONATE_ROOT` at the top of the file to point to yo
 
 Download the sample test images and pretrained models:
 
-| Resource | Link |
-|---|---|
-| Test images (`test_data/`) | [to be added] |
-| Pretrained models (`.pth`) | [to be added] |
+| Resource |
+|---|
+| Test images (`test_data/`) |
+| Pretrained models (`.pth`) |
 
 Place the downloaded files in the project root, then run:
 
