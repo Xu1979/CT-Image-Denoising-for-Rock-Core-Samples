@@ -35,7 +35,7 @@ pip install -r requirements.txt
 > https://pytorch.org/get-started/locally/  
 > then install the remaining packages via `pip install -r requirements.txt`.
 
-**Pretrained weights for SwinUNet** (`swin_base_patch4_window7_224.pth`):  
+**Pretrained weights for Hybrid Swin Transformer** (`swin_base_patch4_window7_224.pth`):  
 Download from the [Swin Transformer repository](https://github.com/microsoft/Swin-Transformer) and place at:
 ```
 pretrained/swin_base_patch4_window7_224.pth
