@@ -20,6 +20,8 @@ Deep learning and traditional methods for denoising CT scan images of geological
 | Ring artifact correction (RHC) | Traditional | `traditional_denoising_pipeline.py` |
 | K-means-assisted beam hardening correction (BHC) | Traditional | `traditional_denoising_pipeline.py` |
 
+> **Hybrid Swin Transformer** is a custom architecture combining a pretrained Swin Transformer encoder (`swin_base_patch4_window7_224`) with a lightweight CNN decoder. It is distinct from the original SwinUNet (Cao et al., 2021), which uses a pure Transformer for both encoder and decoder.
+
 ## Requirements
 
 - Python 3.9+
