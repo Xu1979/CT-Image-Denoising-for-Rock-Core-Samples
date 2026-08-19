@@ -55,9 +55,7 @@ pretrained/swin_base_patch4_window7_224.pth
 ├── Generate_multiversion_noise.py   # Generate multi-version noisy images
 ├── direct_real_image_prediction.py  # Deep-learning/traditional inference on real images
 ├── minkowski_functionals_2d.py      # Minkowski analysis for synthetic-noise experiments
-├── real_image_minkowski_functionals.py # Minkowski analysis for real images
 ├── downsample_tomo.py               # ×2 downsampling and segmentation comparison
-├── generate_downsample_segmentation_figure.py # HR vs ×2 segmentation figure
 ├── requirements.txt
 └── LICENSE
 ```
@@ -220,7 +218,7 @@ segmentation directories:
 python downsample_tomo.py
 ```
 
-Next, segment both the HR and ×2 images using Otsu, MidGrey and Weka, and place
+Next, segment both the HR and ×2 images using Otsu, MidGrey and Weka in ImageJ, and place
 the label images in the corresponding directories prepared by the script.
 Then upsample the completed ×2 label maps to the aligned HR grid:
 
@@ -255,11 +253,6 @@ than an independent manually annotated ground truth.
 ## Quick Test
 
 Download the sample test images and pretrained models:
-
-| Resource | Link |
-|---|---|
-| Test images (`test_data/`) | [to be added] |
-| Pretrained models (`.pth`) | [to be added] |
 
 Place the downloaded files in the project root, then run:
 
