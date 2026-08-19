@@ -4,7 +4,7 @@ Deep learning and traditional methods for denoising CT scan images of geological
 
 ## Paper
 
-> [Micro-CT Image Denoising of Rock Core Sample Using Deep Learning]  
+> [Micro-CT Image Denoising of Rock Sample Using Deep Learning]  
 > Jiang  
 > *[Journal Name]*, 2026  
 > [DOI / Link — to be added upon acceptance]
@@ -24,7 +24,7 @@ Deep learning and traditional methods for denoising CT scan images of geological
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.10+
 - CUDA-capable GPU (recommended)
 
 Install dependencies:
