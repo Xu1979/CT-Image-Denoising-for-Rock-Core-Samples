@@ -13,6 +13,13 @@ import timm
 from dataset_pre import create_data_loaders
 import gc
 from torch.amp import autocast, GradScaler
+from pathlib import Path
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_PRETRAINED_PATH = (
+    SCRIPT_DIR / "pretrained" / "swin_base_patch4_window7_224.pth"
+)
 
 
 # =====================
@@ -20,7 +27,7 @@ from torch.amp import autocast, GradScaler
 # =====================
 class SwinUNet(nn.Module):
     def __init__(self, pretrained=True, img_size=224, num_classes=1, 
-                 pretrained_path=r"E:\pretrained\swin_base_patch4_window7_224.pth"):
+                 pretrained_path=DEFAULT_PRETRAINED_PATH):
         super(SwinUNet, self).__init__()
 
         self.encoder = timm.create_model(

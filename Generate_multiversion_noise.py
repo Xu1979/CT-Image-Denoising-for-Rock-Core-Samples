@@ -1,8 +1,14 @@
 """
-Generate N versions of each noise type/combination on a fixed clean image.
-Each version uses different random noise parameters.
-Within each version, combined noise reuses the SAME params as single noise.
-All parameters are recorded in a JSON log for reproducibility.
+Generate reproducible single/combined noise datasets in two modes:
+
+1. fixed_slice: the original workflow. Generate N random versions from one
+   fixed clean slice.
+2. generalization: generate two independently randomized versions for every
+   clean slice in a directory.
+
+Within a slice/version, combined noise reuses the SAME parameters and random
+seeds as the corresponding single-noise images. All parameters are recorded
+in JSON for reproducibility.
 
 Output structure:
   output_dir/
@@ -23,6 +29,10 @@ import numpy as np
 from scipy.special import sph_harm_y
 import json
 from tqdm import tqdm
+from pathlib import Path
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 # ========================================================================
 # Noise Functions (original from dataset_pre.py, NO modifications)
@@ -125,12 +135,33 @@ def draw_limited_by_mask(image, center=None, radius=None):
 # Config
 # ========================================================================
 
-INPUT_PATH = r"E:\243Summer session\image denoising_Jiang\new_coding\output_test\random_noise_tensity_on_fixed_slice\00062_s0020_v02.png"
-OUTPUT_DIR = r"E:\243Summer session\image denoising_Jiang\new_coding\output_test\random_noise_tensity_on_fixed_slice\carbonate"
-SANDSTONE_PARAMS_PATH = r"E:\243Summer session\image denoising_Jiang\new_coding\output_test\random_noise_tensity_on_fixed_slice\sandstone\all_noise_params.json"
+# Select "fixed_slice" to preserve the original workflow, or
+# "generalization" for the multi-slice DRP-425 experiment.
+RUN_MODE = "generalization"
+
+# Original fixed-slice configuration. All paths are relative to this script so
+# the project can be moved or cloned without editing a machine-specific drive.
+FIXED_SLICE_ROOT = SCRIPT_DIR / "output_test" / "random_noise_tensity_on_fixed_slice"
+INPUT_PATH = FIXED_SLICE_ROOT / "00062_s0020_v02.png"
+OUTPUT_DIR = FIXED_SLICE_ROOT / "carbonate"
+SANDSTONE_PARAMS_PATH = FIXED_SLICE_ROOT / "sandstone" / "all_noise_params.json"
 NUM_VERSIONS = 30
 USE_MASK = False  # True for sandstone, False for carbonate
 SANDSTONE_WIDTH = 2007  # sandstone image width, for BH scaling
+
+# Multi-slice generalization configuration.
+GENERALIZATION_INPUT_DIR = Path(
+    SCRIPT_DIR / "output_test" / "generalization_noise" / "carbonate"
+)
+GENERALIZATION_OUTPUT_DIR = Path(
+    SCRIPT_DIR / "output_test" / "generalization_noise" / "carbonate"
+)
+VERSIONS_PER_SLICE = 3
+GENERALIZATION_BASE_SEED = 10000
+# Keep the original DRP-425 square slices. Set True only for datasets that
+# explicitly require a circular field-of-view mask.
+GENERALIZATION_USE_MASK = False
+SUPPORTED_IMAGE_EXTENSIONS = {".png", ".tif", ".tiff", ".jpg", ".jpeg", ".webp"}
 # Noise parameter ranges (same as your dataset_pre.py)
 SAP_AMOUNT_RANGE = (0.01, 0.05)
 SAP_RATIO_RANGE = (0.3, 0.7)
@@ -269,9 +300,10 @@ COMBO_TO_TYPES = {
 # Main
 # ========================================================================
 
-def main():
+def main_fixed_slice():
+    """Original workflow: many random versions of one fixed clean slice."""
     # Read clean image
-    clean = cv2.imread(INPUT_PATH, cv2.IMREAD_GRAYSCALE)
+    clean = cv2.imread(str(INPUT_PATH), cv2.IMREAD_GRAYSCALE)
     if clean is None:
         raise FileNotFoundError(f"Cannot read image: {INPUT_PATH}")
     img_h, img_w = clean.shape
@@ -342,6 +374,133 @@ def main():
     print(f"  BH:   base_radius={sample['beam_hardening']['base_radius']}, scale_factor={sample['beam_hardening']['scale_factor']}")
 
 
+def find_generalization_slices(input_dir):
+    """Return supported clean slice images directly under input_dir."""
+    input_dir = Path(input_dir)
+    if not input_dir.is_dir():
+        raise FileNotFoundError(f"Generalization input directory not found: {input_dir}")
+    image_paths = sorted(
+        (
+            path
+            for path in input_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
+        ),
+        key=lambda path: path.name.casefold(),
+    )
+    if not image_paths:
+        raise RuntimeError(f"No supported slice images found in: {input_dir}")
+    return image_paths
+
+
+def generalization_seed(slice_index, version_index):
+    """Deterministic unique seed for one slice/version pair."""
+    return GENERALIZATION_BASE_SEED + slice_index * VERSIONS_PER_SLICE + version_index
+
+
+def main_generalization():
+    """Generate two randomized noise versions for every DRP-425 slice."""
+    image_paths = find_generalization_slices(GENERALIZATION_INPUT_DIR)
+    output_dir = Path(GENERALIZATION_OUTPUT_DIR)
+    clean_dir = output_dir / "clean"
+    clean_dir.mkdir(parents=True, exist_ok=True)
+    for combo in NOISE_COMBOS:
+        (output_dir / combo).mkdir(parents=True, exist_ok=True)
+
+    print(f"Generalization input: {GENERALIZATION_INPUT_DIR}")
+    print(f"Found {len(image_paths)} clean slices")
+    print(f"Versions per slice: {VERSIONS_PER_SLICE}")
+    print(f"Noise combinations: {len(NOISE_COMBOS)}")
+    print(f"Use mask: {GENERALIZATION_USE_MASK}")
+    print(f"Output: {output_dir}\n")
+
+    all_slice_params = {}
+    total_noisy = len(image_paths) * VERSIONS_PER_SLICE * len(NOISE_COMBOS)
+
+    for slice_index, image_path in enumerate(tqdm(image_paths, desc="Clean slices")):
+        clean = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+        if clean is None:
+            raise ValueError(f"Cannot read clean slice: {image_path}")
+        img_h, img_w = clean.shape
+        clean_name = f"{image_path.stem}.png"
+        if not cv2.imwrite(str(clean_dir / clean_name), clean):
+            raise OSError(f"Failed to write clean image: {clean_dir / clean_name}")
+
+        version_records = {}
+        for version_index in range(VERSIONS_PER_SLICE):
+            version_key = f"v{version_index:02d}"
+            version_seed = generalization_seed(slice_index, version_index)
+            params = generate_version_params(img_w, img_h, version_seed)
+            output_name = f"{image_path.stem}_{version_key}.png"
+
+            # generate_noisy_image reads the fixed-slice USE_MASK global. Set
+            # it only around these calls so the original workflow is retained.
+            for combo in NOISE_COMBOS:
+                noise_types = COMBO_TO_TYPES[combo]
+                noisy_img = generate_noisy_image_with_mask(
+                    clean,
+                    noise_types,
+                    params,
+                    use_mask=GENERALIZATION_USE_MASK,
+                )
+                destination = output_dir / combo / output_name
+                if not cv2.imwrite(str(destination), noisy_img):
+                    raise OSError(f"Failed to write noisy image: {destination}")
+
+            version_records[version_key] = {
+                "output_filename": output_name,
+                **params,
+            }
+
+        all_slice_params[image_path.stem] = {
+            "source_image": image_path.name,
+            "clean_output": clean_name,
+            "image_shape": [img_h, img_w],
+            "versions": version_records,
+        }
+
+    meta = {
+        "mode": "generalization",
+        "input_directory": str(GENERALIZATION_INPUT_DIR),
+        "output_directory": str(output_dir),
+        "num_slices": len(image_paths),
+        "versions_per_slice": VERSIONS_PER_SLICE,
+        "num_noise_combinations": len(NOISE_COMBOS),
+        "total_noisy_images": total_noisy,
+        "use_mask": GENERALIZATION_USE_MASK,
+        "base_seed": GENERALIZATION_BASE_SEED,
+        "noise_combinations": NOISE_COMBOS,
+        "noise_param_ranges": {
+            "sap_amount": list(SAP_AMOUNT_RANGE),
+            "sap_ratio": list(SAP_RATIO_RANGE),
+            "ring_num": list(RING_NUM_RANGE),
+            "ring_intensity": list(RING_INTENSITY_RANGE),
+            "bh_lm_list": BH_LM_LIST,
+        },
+        "slices": all_slice_params,
+    }
+    params_path = output_dir / "all_noise_params.json"
+    with params_path.open("w", encoding="utf-8") as file:
+        json.dump(meta, file, indent=2)
+
+    print("\n" + "=" * 60)
+    print("Generalization noise generation complete")
+    print(f"Clean images: {len(image_paths)}")
+    print(f"Noisy images: {total_noisy}")
+    print(f"Parameter log: {params_path}")
+
+
+def generate_noisy_image_with_mask(clean, combo, params, use_mask):
+    """Generalization variant with an explicit mask setting."""
+    img = clean.copy()
+    if "bh" in combo:
+        img = apply_bh(img, params)
+    if "ring" in combo:
+        img = apply_ring(img, params)
+    if "sap" in combo:
+        img = apply_sap(img, params)
+    return finalize(img, use_mask=use_mask)
+
+
 # ========================================================================
 # Cross-rock variant: apply sandstone noise params to a carbonate image.
 # Purpose: generate carbonate noisy images with the same noise intensity
@@ -390,4 +549,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if RUN_MODE == "fixed_slice":
+        main_fixed_slice()
+    elif RUN_MODE == "generalization":
+        main_generalization()
+    else:
+        raise ValueError(
+            f"Unknown RUN_MODE={RUN_MODE!r}; use 'fixed_slice' or 'generalization'"
+        )

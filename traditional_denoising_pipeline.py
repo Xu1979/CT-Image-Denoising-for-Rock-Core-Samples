@@ -8,6 +8,9 @@ Batch traditional denoising pipeline.
 """
 
 import os
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
+import re
 import cv2
 import numpy as np
 import pandas as pd
@@ -24,8 +27,25 @@ from skimage.restoration import denoise_nl_means, estimate_sigma
 # Config
 # ══════════════════════════════════════════════════════════════════════
 
-SANDSTONE_ROOT = r"E:\sandstone"
-CARBONATE_ROOT = r"E:\carbonate"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Generalization mode matches <slice>_vXX.png with clean/<slice>.png.
+# Fixed-slice mode compares every noisy image with clean/clean.png.
+RUN_MODE = "generalization"
+GENERALIZATION_ROOT = os.path.join(
+    SCRIPT_DIR, "output_test", "generalization_noise", "carbonate"
+)
+FIXED_SLICE_ROOTS = [
+    os.path.join(
+        SCRIPT_DIR, "output_test", "random_noise_tensity_on_fixed_slice", "sandstone"
+    ),
+]
+
+FIXED_SLICE_BASE = os.path.join(
+    SCRIPT_DIR, "output_test", "random_noise_tensity_on_fixed_slice"
+)
+SANDSTONE_ROOT = os.path.join(FIXED_SLICE_BASE, "sandstone")
+CARBONATE_ROOT = os.path.join(FIXED_SLICE_BASE, "carbonate")
 
 SANDSTONE_CLEAN = os.path.join(SANDSTONE_ROOT, "clean", "clean.png")
 CARBONATE_CLEAN = os.path.join(CARBONATE_ROOT, "clean", "clean.png")
@@ -35,6 +55,18 @@ SANDSTONE_FOLDERS = [
     "sap_ring", "sap_bh", "ring_bh", "sap_ring_bh",
 ]
 CARBONATE_FOLDERS = ["sap_ring_bh"]
+
+# Select active input layout while keeping the original fixed-slice workflow.
+if RUN_MODE == "generalization":
+    SANDSTONE_ROOT = GENERALIZATION_ROOT
+    SANDSTONE_CLEAN = os.path.join(SANDSTONE_ROOT, "clean")
+    CARBONATE_FOLDERS = []
+elif RUN_MODE == "fixed_slice":
+    SANDSTONE_ROOT = FIXED_SLICE_ROOTS[0]
+    SANDSTONE_CLEAN = os.path.join(SANDSTONE_ROOT, "clean", "clean.png")
+    CARBONATE_FOLDERS = []
+else:
+    raise ValueError("RUN_MODE must be 'generalization' or 'fixed_slice'")
 
 PATCH_SIZE = 256
 MARGIN_RATIO = 0.2
@@ -209,7 +241,13 @@ def denoise_mean(img: np.ndarray, ksize=5) -> np.ndarray:
 
 def denoise_nlm(img: np.ndarray) -> np.ndarray:
     img_f = img.astype(np.float32) / 255.0
-    sigma_est = float(np.mean(estimate_sigma(img_f, channel_axis=None)))
+    # Uniform background patches contain no measurable noise. Passing them to
+    # estimate_sigma can produce an empty-mean warning and NaN, so keep them.
+    if float(np.ptp(img_f)) < 1e-6 or float(np.std(img_f)) < 1e-6:
+        return img.copy()
+    sigma_est = float(estimate_sigma(img_f, channel_axis=None))
+    if not np.isfinite(sigma_est) or sigma_est <= 1e-8:
+        return img.copy()
     denoised = denoise_nl_means(
         img_f, h=0.8 * sigma_est, sigma=sigma_est,
         patch_size=5, patch_distance=7,
@@ -358,12 +396,27 @@ def denoise_one_image(img_uint8, noise_types, sap_fn):
     return img.astype(np.float32) / 255.0
 
 
-def process_folder(sample_root, folder_name, clean_path, records):
+def resolve_clean_path(clean_source, noisy_filename, per_image_clean):
+    if not per_image_clean:
+        return clean_source
+    stem, _ = os.path.splitext(noisy_filename)
+    clean_stem = re.sub(r"_v\d+$", "", stem, flags=re.IGNORECASE)
+    for extension in (".png", ".tif", ".tiff", ".jpg", ".jpeg"):
+        candidate = os.path.join(clean_source, clean_stem + extension)
+        if os.path.isfile(candidate):
+            return candidate
+    raise FileNotFoundError(
+        f"No clean image for {noisy_filename!r}; expected {clean_stem} in {clean_source}"
+    )
+
+
+def process_folder(sample_root, folder_name, clean_source, records, per_image_clean=False):
     """
     Process one noise folder.
     - If folder contains SAP noise: run all 5 SAP filters
     - If no SAP: run BH/Ring pipeline once (method_name = 'traditional')
     """
+    per_image_clean = per_image_clean or os.path.isdir(clean_source)
     folder_path = os.path.join(sample_root, folder_name)
     if not os.path.isdir(folder_path):
         print(f"  [SKIP] Not found: {folder_path}")
@@ -372,13 +425,6 @@ def process_folder(sample_root, folder_name, clean_path, records):
     noise_types = detect_noise_types(folder_name)
     has_sap = 'sap' in noise_types
     sample_name = os.path.basename(sample_root)  # 'sandstone' or 'carbonate'
-
-    # Load clean image
-    clean_img = cv2.imread(clean_path, cv2.IMREAD_GRAYSCALE)
-    if clean_img is None:
-        print(f"  [ERROR] Cannot read clean image: {clean_path}")
-        return
-    clean_np = clean_img.astype(np.float32) / 255.0
 
     # Get noisy image files
     img_files = sorted([
@@ -414,6 +460,17 @@ def process_folder(sample_root, folder_name, clean_path, records):
             img_uint8 = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
             if img_uint8 is None:
                 continue
+
+            try:
+                clean_path = resolve_clean_path(clean_source, img_file, per_image_clean)
+            except FileNotFoundError as error:
+                print(f"    [ERROR] {error}")
+                continue
+            clean_img = cv2.imread(clean_path, cv2.IMREAD_GRAYSCALE)
+            if clean_img is None:
+                print(f"    [ERROR] Cannot read clean image: {clean_path}")
+                continue
+            clean_np = clean_img.astype(np.float32) / 255.0
 
             # Noisy metrics
             noisy_np = img_uint8.astype(np.float32) / 255.0
