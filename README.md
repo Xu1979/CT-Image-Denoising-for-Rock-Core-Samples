@@ -57,6 +57,7 @@ pretrained/swin_base_patch4_window7_224.pth
 ├── minkowski_functionals_2d.py      # Minkowski analysis for synthetic-noise experiments
 ├── downsample_tomo.py               # ×2 downsampling and segmentation comparison
 ├── requirements.txt
+├── quick test.py
 └── LICENSE
 ```
 
@@ -153,7 +154,37 @@ Supported input formats include PNG, TIFF, JPEG, BMP and WebP. WebP inputs and
 their processed outputs are saved as PNG. Results are written under
 `real_image_direct_denoised/`, with one subdirectory per method.
 
-### Step 6 — Segment the real-image results in ImageJ
+### Step 6 — Select appropriate segmentation method
+
+The downsampling experiment compares segmentation performed on a high-
+resolution image with segmentation performed after ×2 downsampling and then
+upsampled to the HR grid. First, prepare the aligned HR and ×2 images and the
+segmentation directories:
+
+```bash
+python downsample_tomo.py
+```
+
+Next, segment both the HR and ×2 images using Otsu, MidGrey and Weka in ImageJ, and place
+the label images in the corresponding directories prepared by the script.
+Then upsample the completed ×2 label maps to the aligned HR grid:
+
+```bash
+python downsample_tomo.py --upsample-labels
+```
+
+Finally, calculate the pixel-wise agreement and structural deviations:
+
+```bash
+python downsample_tomo.py --compare-pixelwise --compare-structural
+```
+
+The output includes Dice, IoU, precision, recall, pixel accuracy, and the
+deviations in porosity, perimeter density and Euler density. The HR
+segmentation is a method-specific resolution-consistency reference, rather
+than an independent manually annotated ground truth.
+
+### Step 7 — Segment the real-image results in ImageJ
 
 Segment the original and denoised images using the same ImageJ workflow. The
 current experiments use ImageJ with Advanced/Trainable Weka Segmentation.
@@ -183,7 +214,7 @@ Traditional-method segmentations remain in `traditional_bh/` or
 `traditional_ring/`. For binary segmentation images, black (`0`) represents
 the pore phase and white (`255`) represents the solid matrix.
 
-### Step 7 — Calculate 2D Minkowski functionals
+### Step 8 — Calculate 2D Minkowski functionals
 
 For the synthetic-noise/multi-slice experiments, arrange the segmented TIFF
 files under `output_test/minkowski_functionals/`, then run:
@@ -206,36 +237,6 @@ figures are saved in:
 ```text
 output_test/minkowski_functionals/results/
 ```
-
-### Step 8 — Run the ×2 downsampling experiment
-
-The downsampling experiment compares segmentation performed on a high-
-resolution image with segmentation performed after ×2 downsampling and then
-upsampled to the HR grid. First, prepare the aligned HR and ×2 images and the
-segmentation directories:
-
-```bash
-python downsample_tomo.py
-```
-
-Next, segment both the HR and ×2 images using Otsu, MidGrey and Weka in ImageJ, and place
-the label images in the corresponding directories prepared by the script.
-Then upsample the completed ×2 label maps to the aligned HR grid:
-
-```bash
-python downsample_tomo.py --upsample-labels
-```
-
-Finally, calculate the pixel-wise agreement and structural deviations:
-
-```bash
-python downsample_tomo.py --compare-pixelwise --compare-structural
-```
-
-The output includes Dice, IoU, precision, recall, pixel accuracy, and the
-deviations in porosity, perimeter density and Euler density. The HR
-segmentation is a method-specific resolution-consistency reference, rather
-than an independent manually annotated ground truth.
 
 
 ## Noise Types
