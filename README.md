@@ -4,7 +4,7 @@ Deep learning and traditional methods for denoising CT scan images of geological
 
 ## Paper
 
-> [Paper Title]  
+> [Micro-CT Image Denoising for Rock Core Samples]  
 > Jiang  
 > *[Journal Name]*, 2026  
 > [DOI / Link — to be added upon acceptance]
